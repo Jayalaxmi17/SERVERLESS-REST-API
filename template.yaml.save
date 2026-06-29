@@ -1,0 +1,165 @@
+c
+> template.yaml << 'EOF'
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Serverless REST API with Lambda, API Gateway, and MongoDB
+
+Globals:
+  Function:
+    Runtime: python3.13
+    CodeUri: src/
+    Timeout: 30
+    MemorySize: 256
+    Environment:
+      Variables:
+        MONGO_URI: !Sub '{{resolve:ssm:/app/mongo_uri}}'
+        JWT_SECRET: !Sub '{{resolve:ssm:/app/jwt_secret}}'
+
+Resources:
+
+  JwtAuthorizer:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: authorizer.handler
+      CodeUri: src/auth/
+      Environment:
+        Variables:
+          JWT_SECRET: !Sub '{{resolve:ssm:/app/jwt_secret}}'
+
+  MyApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Auth:
+        DefaultAuthorizer: JwtLambdaAuthorizer
+        Authorizers:
+          JwtLambdaAuthorizer:
+            FunctionArn: !GetAtt JwtAuthorizer.Arn
+            Identity:
+              Header: Authorization
+
+  CreateItem:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/create.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /items
+            Method: post
+
+  ReadItem:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/read.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /items/{id}
+            Method: get
+
+  UpdateItem:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/update.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /items/{id}
+            Method: put
+
+  DeleteItem:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/delete.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /items/{id}
+            Method: delete
+
+Outputs:
+  ApiUrl:
+    Description: Your live API URL
+    Value: !Sub 'https://${MyApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/'
+EOFemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Serverless REST API with Lambda, API Gateway, and MongoDB
+
+Globals:
+  Function:
+    Runtime: python3.13
+    CodeUri: src/
+    
+    MemorySize: 256
+
+Resources:
+
+  JwtAuthorizer:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: authorizer.handler
+      CodeUri: src/auth/
+      Environment:
+        Variables:
+        JWT_SECRET: !Sub '{{resolve:ssm:/app/jwt_secret}}'
+
+  MyApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+            DefaultAuthorizer: JwtLambdaAuthorizer
+        Authorizers:
+          JwtLambdaAuthorizer:
+            FunctionArn: !GetAtt JwtAuthorizer.Arn
+            Identity:
+              Header: Authorization
+
+  CreateItem:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/create.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /items
+            Method: post
+
+  ReadItem:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/read.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /items/{id}
+            Method: get
+
+  UpdateItem:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/update.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /items/{id}
+            Method: put
+
+  DeleteItem:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/del
